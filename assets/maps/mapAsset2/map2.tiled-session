@@ -1,0 +1,69 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "/Users/aminapancenko/Desktop/javaGame2d/assets/maps/MainMap/streetstilesetDEMO.tsx": {
+            "scaleInDock": 2.2
+        },
+        "/Users/aminapancenko/Documents/Games/GameAssets/streetstilesetDEMO.tsx": {
+            "scaleInDock": 3.45
+        },
+        "Assets_City.tsj": {
+            "scaleInDock": 3.45,
+            "scaleInEditor": 2.65
+        },
+        "Background Props.tsj": {
+            "scaleInDock": 3.45,
+            "scaleInEditor": 2.65
+        },
+        "Buildings.tsj": {
+            "scaleInDock": 3.45,
+            "scaleInEditor": 2.65
+        },
+        "Props-01.tsj": {
+            "scaleInDock": 3.45,
+            "scaleInEditor": 2.65
+        },
+        "build2.tsj": {
+            "scaleInDock": 3.45,
+            "scaleInEditor": 2.65
+        },
+        "map2.tmx": {
+            "scale": 0.68,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 980.8823529411764,
+                "y": 258.8235294117647
+            }
+        }
+    },
+    "last.externalTilesetPath": "/Users/aminapancenko/Documents/Games/secondmap/mapAsset2",
+    "last.imagePath": "/Users/aminapancenko/Downloads/Action Pack - CITY/Assets",
+    "map.height": 45,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 80,
+    "openFiles": [
+    ],
+    "project": "map2.tiled-project",
+    "recentFiles": [
+        "map2.tmx",
+        "Assets_City.tsj",
+        "Background Props.tsj",
+        "build2.tsj",
+        "Props-01.tsj",
+        "Buildings.tsj"
+    ],
+    "tileset.lastUsedFormat": "json",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

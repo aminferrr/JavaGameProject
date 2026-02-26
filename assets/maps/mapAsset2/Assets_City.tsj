@@ -1,0 +1,14 @@
+{ "columns":17,
+ "image":"..\/..\/..\/..\/Downloads\/Action Pack - CITY\/Assets\/Assets_City.png",
+ "imageheight":224,
+ "imagewidth":272,
+ "margin":0,
+ "name":"Assets_City",
+ "spacing":0,
+ "tilecount":238,
+ "tiledversion":"1.11.2",
+ "tileheight":16,
+ "tilewidth":16,
+ "type":"tileset",
+ "version":"1.10"
+}

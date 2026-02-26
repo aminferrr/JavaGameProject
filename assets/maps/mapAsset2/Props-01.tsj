@@ -1,0 +1,14 @@
+{ "columns":8,
+ "image":"..\/..\/..\/..\/..\/Downloads\/Sidescroller Shooter - Central City-2\/Assets\/Props-01.png",
+ "imageheight":224,
+ "imagewidth":128,
+ "margin":0,
+ "name":"Props-01",
+ "spacing":0,
+ "tilecount":112,
+ "tiledversion":"1.11.2",
+ "tileheight":16,
+ "tilewidth":16,
+ "type":"tileset",
+ "version":"1.10"
+}
