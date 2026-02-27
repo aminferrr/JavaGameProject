@@ -1,0 +1,291 @@
+[
+  {
+    "type": "message",
+    "speaker": "Narration",
+    "text": "Opening your eyes, you realize you're not home.\nNeon signs reflect off the wet asphalt. The hum of drones and the roar of cars surrounds you.\nA man in cyberpunk armor emerges from the shadows, his face hidden by a helmet.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/1comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "Oh... another one.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/1comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "You're from another world, right?",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/1comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "Yeah... I see. There are a lot of people like you around here. Useless dead weight. They get in the way.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/1comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "There are more and more people like you lately. Good for nothing. Then we'll have to pick up after you.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/1comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "You",
+    "text": "Okay, so what should I do? I have no idea where I am...",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/6comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "You're in Robopunk, the city of technology. And the government wastes money on people like you, you know.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/7comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "You",
+    "text": "This is my first time here. And I have no idea what you're talking about.",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/8comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "Ah... listen carefully. For the last five years, people from another world have been coming here. They were supposed to help fight the virus-ridden robots. But... even if they tried, their strength is almost gone. If the robot wins, people like you will become enemies. So sit quietly and find a secluded place.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/9comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "You",
+    "text": "Okay, where to work? Well, like, to get a salary there.",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/10comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "WORK? Are you even listening? The state provides…",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/11comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Sonds",
+    "text": "BAM",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/12comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "Another invasion! Don't you dare even fight, understand?!",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "You",
+    "text": "Doesn't matter... but if they attack me... I still want to live.",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/14comics_mom.mp3"
+  },
+
+
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "Are you... alive?\nI told you not to interfere. Are you even in your right mind?",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "You",
+    "text": "So, I'm being attacked, so why should I just sit back?\n  Well, excuse me, I still need to figure out where I am and how I can make money...",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/14comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Someone",
+    "text": "It can't be... Time travelers don't get that kind of feedback.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Mike",
+    "text": "Okay... Let's say I'm Mike. Let's get acquainted. What's your name?",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "You",
+    "text": "I don't want to talk about the present (in my thoughts) yet...\nYou can call me Stepan.",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/14comics_mom.mp3"
+  },
+
+  {
+    "type": "message",
+    "speaker": "Mike",
+    "text": "Okay, now...",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Girl",
+    "text": "MIKEEEEEE!",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Mike",
+    "text": "!",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Girl",
+    "text": "ARE YOU OKAY?!",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Mike",
+    "text": "Yes, Lisa...",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "Sounds good!\nOh, and here's another time travel...",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "Okay! Then I have one question to ask you!",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Mike",
+    "text": "No need.For the sake of balance in the univer...",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "NEED TO! Hey you, now answer my question!",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "Tell me...",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "What is 2+2?",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "answer",
+    "speaker": "Stepan",
+    "text": "4",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/16comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "GREAT! Welcome! Remember this number. It will be your password so we can identify you!",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Stepan",
+    "text": "Cool...",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/14comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Lisa",
+    "text": "Then I'm going! Stepan, come to me later. Right to the end.",
+    "image": "plot_characters/nps/lisa.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Stepan",
+    "text": "And she`s gone...",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/14comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Mike",
+    "text": "Lisa is very energetic. Okay, better go with her, I think she'll explain it better to you. And I'm lazy... Good luck.",
+    "image": "plot_characters/nps/mike.png",
+    "audio": "audio/dialog/13comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "Stepan",
+    "text": "Good...",
+    "image": "plot_characters/player/player.png",
+    "audio": "audio/dialog/14comics_mom.mp3"
+  },
+
+
+
+
+
+
+  {
+    "type": "message",
+    "speaker": "NPC1",
+    "text": "How are you?",
+    "image": "characters/player/Dash.png",
+    "audio": "audio/dialog/15comics_mom.mp3"
+  },
+  {
+    "type": "answer",
+    "speaker": "Player",
+    "text": "42",
+    "image": "characters/player/Jump.png",
+    "audio": "audio/dialog/16comics_mom.mp3"
+  },
+  {
+    "type": "message",
+    "speaker": "NPC1",
+    "text": "Nice to hear!",
+    "image": "characters/player/Dash.png",
+    "audio": "audio/dialog/17comics_mom.mp3"
+  }
+]

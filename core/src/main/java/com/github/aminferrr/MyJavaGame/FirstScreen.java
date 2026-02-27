@@ -1,140 +1,138 @@
-package com.github.aminferrr.MyJavaGame;
+package com.github.aminferrr.MyJavaGame.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.maps.MapLayer;
-import com.badlogic.gdx.maps.tiled.TiledMap;
-import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
-import com.badlogic.gdx.maps.tiled.TmxMapLoader;
-import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.github.aminferrr.MyJavaGame.Main;
+import com.github.aminferrr.MyJavaGame.Database;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.CheckBox;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 
-public class FirstScreen extends ScreenAdapter {
+// Импорты для видео
+import com.badlogic.gdx.video.VideoPlayer;
+import com.badlogic.gdx.video.VideoPlayerCreator;
 
-    private final Main game;
+public class FirstScreen implements Screen {
 
-    private OrthographicCamera camera;
-    private FitViewport viewport;
-
-    private TiledMap map;
-    private OrthogonalTiledMapRenderer renderer;
-
-    // ===== MAP =====
-    private static final int MAP_TILES_W = 80;
-    private static final int MAP_TILES_H = 45;
-    private static final float TILE = 16f;
-
-    private static final float WORLD_W = MAP_TILES_W * TILE;
-    private static final float WORLD_H = MAP_TILES_H * TILE;
-
-    // ===== CAMERA VIEW =====
-    private static final float VIEW_W = 640f;
-    private static final float VIEW_H = 360f;
-
-    // ===== COLLISION: ONLY BUILDS =====
-    private TiledMapTileLayer builds;
-
-    // ===== PLAYER =====
-    private float playerW = 16f;
-    private float playerH = 20f;
-    private float playerX = 100f;
-    private float playerY = 60f;
-
-    // ===== FOOT HITBOX =====
-    private float footW = 12f;
-    private float footH = 6f;
-
-    private float stateTime = 0f;
-
-    // ===== SPRITE =====
-    private static final int FRAME_W = 48;
-    private static final int FRAME_H = 64;
-    private static final float DRAW_W = 48f;
-    private static final float DRAW_H = 64f;
-
-    private Texture idleDownSheet;
-    private Texture walkDownSheet;
-    private Animation<TextureRegion> idleDownAnim;
-    private Animation<TextureRegion> walkDownAnim;
-
-    // ===== UI =====
+    private Main game;
     private Stage stage;
-    private Skin skin;
+    private Database db;
+    private Music bgMusic;
+    private SpriteBatch batch;
+
+    // ВИДЕОПЛЕЕР (вместо Texture)
+    private VideoPlayer videoPlayer;
+    private Texture videoFrame; // текущий кадр видео
+
+    // Окна для уровней и настроек
     private Window levelsWindow;
     private Window settingsWindow;
     private boolean soundEnabled = true;
 
     public FirstScreen(Main game) {
         this.game = game;
-    }
-
-    @Override
-    public void show() {
-        camera = new OrthographicCamera();
-        viewport = new FitViewport(VIEW_W, VIEW_H, camera);
-        viewport.apply(true);
-
-        map = new TmxMapLoader().load("maps/MainMap/map..tmx");
-        renderer = new OrthogonalTiledMapRenderer(map, 1f);
-
-        builds = getTileLayer(map, "builds");
-
-        idleDownSheet = new Texture("characters/player/Idle/Idle_Down.png");
-        walkDownSheet = new Texture("characters/player/Walk/walk_Down.png");
-
-        idleDownAnim = makeAnimAuto(idleDownSheet, FRAME_W, FRAME_H, 0.18f);
-        walkDownAnim = makeAnimAuto(walkDownSheet, FRAME_W, FRAME_H, 0.12f);
-
-        // ===== UI INIT =====
         stage = new Stage(new ScreenViewport());
-        Gdx.input.setInputProcessor(stage); // ← ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ!
-        skin = new Skin(Gdx.files.internal("uiskin.json"));
+        batch = new SpriteBatch();
+        Gdx.input.setInputProcessor(stage);
 
-        createTopButtons();
-        createLevelsWindow();
-        createSettingsWindow();
+        db = new Database();
+        Skin skin = new Skin(Gdx.files.internal("uiskin.json"));
 
-        updateCameraClamped();
+        // Загружаем музыку
+        bgMusic = Gdx.audio.newMusic(Gdx.files.internal("audio/music/1bgmu.mp3"));
+        bgMusic.setLooping(true);
+        bgMusic.setVolume(0.5f);
+        bgMusic.play();
+
+        // === ЗАГРУЗКА ВИДЕО (ПРАВИЛЬНО!) ===
+        try {
+            videoPlayer = VideoPlayerCreator.createVideoPlayer();
+            FileHandle videoFile = Gdx.files.internal("back.webm");
+            videoPlayer.play(videoFile);  // сразу начинаем воспроизведение
+            videoPlayer.setVolume(0f);     // звук отключаем (чтоб не мешал музыке)
+            videoPlayer.setLooping(true);  // зацикливаем
+            Gdx.app.log("VIDEO", "Видео успешно загружено и запущено");
+        } catch (Exception e) {
+            Gdx.app.error("VIDEO", "Ошибка загрузки видео", e);
+            videoPlayer = null;
+        }
+
+        // Создаем окна
+        createLevelsWindow(skin);
+        createSettingsWindow(skin);
+
+        // Создаем центральное меню (Continue, Reset, Exit)
+        createCenterMenu(skin);
     }
 
-    private void createTopButtons() {
-        TextButton levelsBtn = new TextButton("Levels", skin);
-        levelsBtn.setPosition(20, Gdx.graphics.getHeight() - 70);
+    private void createCenterMenu(Skin skin) {
+        boolean playerExists = db.checkPlayerExists();
 
-        levelsBtn.addListener(new ClickListener() {
+        TextButton playButton = new TextButton(playerExists ? "Continue" : "Start", skin);
+        TextButton resetButton = new TextButton("Reset Player", skin);
+        TextButton exitButton = new TextButton("Exit", skin);
+
+        playButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                levelsWindow.setVisible(true);
+                if (!db.checkPlayerExists()) {
+                    db.insertInitialPlayer("Hero");
+                }
+                if (videoPlayer != null) videoPlayer.stop();
+                bgMusic.stop();
+                game.setScreen(new GameScreen(game));
             }
         });
 
-        TextButton settingsBtn = new TextButton("Settings", skin);
-        settingsBtn.setPosition(150, Gdx.graphics.getHeight() - 70);
-
-        settingsBtn.addListener(new ClickListener() {
+        resetButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                settingsWindow.setVisible(true);
+                try {
+                    db.resetPlayerTable();
+                    System.out.println("Player table reset!");
+                    // Обновляем текст кнопки на "Start" после сброса
+                    playButton.setText("Start");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
 
-        stage.addActor(levelsBtn);
-        stage.addActor(settingsBtn);
+        exitButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Gdx.app.exit();
+            }
+        });
+
+        Table centerTable = new Table();
+        centerTable.setFillParent(true);
+        centerTable.center();
+        centerTable.add(playButton).width(250).height(70).pad(15);
+        centerTable.row();
+        centerTable.add(resetButton).width(250).height(70).pad(15);
+        centerTable.row();
+        centerTable.add(exitButton).width(250).height(70).pad(15);
+
+        stage.addActor(centerTable);
     }
 
-    private void createLevelsWindow() {
+    private void createLevelsWindow(Skin skin) {
         levelsWindow = new Window("Select Level", skin);
         levelsWindow.setSize(500, 350);
         levelsWindow.setPosition(
@@ -149,18 +147,14 @@ public class FirstScreen extends ScreenAdapter {
 
         for (int i = 1; i <= totalLevels; i++) {
             final int level = i;
-            TextButton levelBtn = new TextButton("Level " + level, skin);
+            TextButton levelBtn = new TextButton("Level " + i, skin);
 
             levelBtn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-                    if (level == 1) {
-                        game.setScreen(new PlayingScreen(game));
-                    } else if (level == 2) {
-                        game.setScreen(new Level2Screen(game));
-                    } else {
-                        game.setScreen(new PlayingScreen(game));
-                    }
+                    if (videoPlayer != null) videoPlayer.stop();
+                    bgMusic.stop();
+                    game.setScreen(new GameScreen(game));
                 }
             });
 
@@ -184,7 +178,7 @@ public class FirstScreen extends ScreenAdapter {
         stage.addActor(levelsWindow);
     }
 
-    private void createSettingsWindow() {
+    private void createSettingsWindow(Skin skin) {
         settingsWindow = new Window("Settings", skin);
         settingsWindow.setSize(400, 250);
         settingsWindow.setPosition(
@@ -195,6 +189,7 @@ public class FirstScreen extends ScreenAdapter {
         Table table = new Table();
         table.defaults().pad(10);
 
+        // Чекбокс для звука
         CheckBox soundCheck = new CheckBox(" Sound Enabled", skin);
         soundCheck.setChecked(soundEnabled);
 
@@ -202,9 +197,27 @@ public class FirstScreen extends ScreenAdapter {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 soundEnabled = soundCheck.isChecked();
+                if (soundEnabled) {
+                    bgMusic.setVolume(0.5f);
+                } else {
+                    bgMusic.setVolume(0f);
+                }
                 System.out.println("Sound: " + soundEnabled);
             }
         });
+
+        // Ползунок громкости
+        Slider volumeSlider = new Slider(0f, 1f, 0.1f, false, skin);
+        volumeSlider.setValue(0.5f);
+        volumeSlider.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                float volume = volumeSlider.getValue();
+                bgMusic.setVolume(volume);
+            }
+        });
+
+        Label volumeLabel = new Label("Volume:", skin);
 
         TextButton close = new TextButton("Close", skin);
         close.addListener(new ClickListener() {
@@ -214,9 +227,12 @@ public class FirstScreen extends ScreenAdapter {
             }
         });
 
-        table.add(soundCheck);
+        table.add(soundCheck).colspan(2);
         table.row();
-        table.add(close).padTop(20);
+        table.add(volumeLabel);
+        table.add(volumeSlider);
+        table.row();
+        table.add(close).colspan(2).padTop(20);
 
         settingsWindow.add(table);
         settingsWindow.setVisible(false);
@@ -225,134 +241,79 @@ public class FirstScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            game.setScreen(new PlayingScreen(game));
-            return;
-        }
-
-        stateTime += delta;
-
-        boolean moving = updatePlayerMovement(delta);
-        updateCameraClamped();
-
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        renderer.setView(camera);
-        renderer.render();
+        // Обновляем видео (получаем новый кадр)
+        if (videoPlayer != null) {
+            videoPlayer.update();
+            videoFrame = videoPlayer.getTexture();
+        }
 
-        TextureRegion frame = moving
-            ? walkDownAnim.getKeyFrame(stateTime, true)
-            : idleDownAnim.getKeyFrame(stateTime, true);
+        // Рисуем фон через stage (чтобы сохранялись пропорции)
+        if (videoFrame != null) {
+            stage.getBatch().begin();
 
-        float drawX = playerX - (DRAW_W - playerW) / 2f;
-        float drawY = playerY - (DRAW_H - playerH);
+            // Получаем размеры stage
+            float stageWidth = stage.getWidth();
+            float stageHeight = stage.getHeight();
 
-        renderer.getBatch().begin();
-        renderer.getBatch().draw(frame, drawX, drawY, DRAW_W, DRAW_H);
-        renderer.getBatch().end();
+            // Получаем размеры видео
+            float videoWidth = videoFrame.getWidth();
+            float videoHeight = videoFrame.getHeight();
 
-        // Рисуем UI поверх игры
+            // Вычисляем пропорции
+            float videoAspect = videoWidth / videoHeight;
+            float stageAspect = stageWidth / stageHeight;
+
+            float drawWidth, drawHeight;
+            float x = 0, y = 0;
+
+            if (videoAspect > stageAspect) {
+                // Видео шире, чем stage - подгоняем по высоте
+                drawHeight = stageHeight;
+                drawWidth = drawHeight * videoAspect;
+                x = (stageWidth - drawWidth) / 2;
+            } else {
+                // Видео выше, чем stage - подгоняем по ширине
+                drawWidth = stageWidth;
+                drawHeight = drawWidth / videoAspect;
+                y = (stageHeight - drawHeight) / 2;
+            }
+
+            // Рисуем видео с правильными пропорциями
+            stage.getBatch().draw(videoFrame, x, y, drawWidth, drawHeight);
+            stage.getBatch().end();
+        }
+
         stage.act(delta);
         stage.draw();
     }
 
-    private boolean updatePlayerMovement(float delta) {
-        float speed = 140f;
-        float dx = 0f, dy = 0f;
-
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))  dx -= speed * delta;
-        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) dx += speed * delta;
-        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN))  dy -= speed * delta;
-        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP))    dy += speed * delta;
-
-        boolean moving = (dx != 0f || dy != 0f);
-
-        if (builds == null) {
-            playerX += dx;
-            playerY += dy;
-            clampPlayerToWorld();
-            return moving;
-        }
-
-        float nextX = playerX + dx;
-        if (!isBlockedFeet(nextX, playerY)) playerX = nextX;
-
-        float nextY = playerY + dy;
-        if (!isBlockedFeet(playerX, nextY)) playerY = nextY;
-
-        clampPlayerToWorld();
-        return moving;
-    }
-
-    private void updateCameraClamped() {
-        float halfW = viewport.getWorldWidth() / 2f;
-        float halfH = viewport.getWorldHeight() / 2f;
-
-        float targetX = playerX + playerW / 2f;
-        float targetY = playerY + playerH / 2f;
-
-        float camX = MathUtils.clamp(targetX, halfW, WORLD_W - halfW);
-        float camY = MathUtils.clamp(targetY, halfH, WORLD_H - halfH);
-
-        camera.position.set(camX, camY, 0);
-        camera.update();
-    }
-
-    private void clampPlayerToWorld() {
-        playerX = MathUtils.clamp(playerX, 0, WORLD_W - playerW);
-        playerY = MathUtils.clamp(playerY, 0, WORLD_H - playerH);
-    }
-
-    private boolean isBlockedFeet(float px, float py) {
-        float footX = px + (playerW - footW) / 2f;
-        float footY = py;
-        float eps = 0.01f;
-
-        return isBlockedPoint(footX, footY) ||
-            isBlockedPoint(footX + footW - eps, footY) ||
-            isBlockedPoint(footX, footY + footH - eps) ||
-            isBlockedPoint(footX + footW - eps, footY + footH - eps);
-    }
-
-    private boolean isBlockedPoint(float worldX, float worldY) {
-        int tileX = (int)(worldX / TILE);
-        int tileY = (int)(worldY / TILE);
-
-        TiledMapTileLayer.Cell cell = builds.getCell(tileX, tileY);
-        return cell != null && cell.getTile() != null;
-    }
-
-    private Animation<TextureRegion> makeAnimAuto(Texture sheet, int frameW, int frameH, float frameDuration) {
-        int columns = sheet.getWidth() / frameW;
-        TextureRegion[][] grid = TextureRegion.split(sheet, frameW, frameH);
-
-        TextureRegion[] frames = new TextureRegion[columns];
-        for (int i = 0; i < columns; i++) frames[i] = grid[0][i];
-
-        return new Animation<>(frameDuration, frames);
-    }
-
-    private TiledMapTileLayer getTileLayer(TiledMap map, String name) {
-        MapLayer layer = map.getLayers().get(name);
-        if (layer instanceof TiledMapTileLayer) return (TiledMapTileLayer) layer;
-        return null;
-    }
-
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height);
         stage.getViewport().update(width, height, true);
-        updateCameraClamped();
+
+        // Обновляем позиции окон
+        if (levelsWindow != null && levelsWindow.isVisible()) {
+            levelsWindow.setPosition(width/2f - 250, height/2f - 175);
+        }
+        if (settingsWindow != null && settingsWindow.isVisible()) {
+            settingsWindow.setPosition(width/2f - 200, height/2f - 125);
+        }
     }
+
+    @Override public void show() {}
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
 
     @Override
     public void dispose() {
-        if (renderer != null) renderer.dispose();
-        if (map != null) map.dispose();
-        if (idleDownSheet != null) idleDownSheet.dispose();
-        if (walkDownSheet != null) walkDownSheet.dispose();
-        if (stage != null) stage.dispose();
-        if (skin != null) skin.dispose();
+        if (videoPlayer != null) videoPlayer.dispose();
+        stage.dispose();
+        db.close();
+        bgMusic.dispose();
+        batch.dispose();
     }
 }

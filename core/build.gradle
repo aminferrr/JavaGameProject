@@ -1,5 +1,5 @@
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-eclipse.project.name = appName + '-core'
+
 
 dependencies {
   api "com.badlogicgames.ashley:ashley:$ashleyVersion"
@@ -8,6 +8,11 @@ dependencies {
   api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
   api "com.github.tommyettinger:anim8-gdx:$anim8Version"
+
+  // Добавляем gdx-video для core
+  implementation "com.badlogicgames.gdx-video:gdx-video:$gdxVideoVersion"
+
+  implementation "org.xerial:sqlite-jdbc:3.41.2.1" // SQLite
 
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"
