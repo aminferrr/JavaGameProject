@@ -257,22 +257,39 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
     }
 
     private void createEnemiesFromTiled() {
+        // Основной слой врагов (Toaster / Wheel и др.)
         MapLayer layer = map.getLayers().get("enemy");
-        if (layer == null) {
+        if (layer != null) {
+            for (MapObject obj : layer.getObjects()) {
+                Float objX = obj.getProperties().get("x", Float.class);
+                Float objY = obj.getProperties().get("y", Float.class);
+                if (objX == null || objY == null) continue;
+
+                float x = objX / PPM;
+                float y = objY / PPM;
+
+                String enemyType = obj.getProperties().get("type", "zapper", String.class);
+                enemies.add(new Enemy(world, new Vector2(x, y), enemyType));
+            }
+        } else {
             Gdx.app.log("ERROR", "Слой 'enemy' не найден!");
-            return;
         }
 
-        for (MapObject obj : layer.getObjects()) {
-            Float objX = obj.getProperties().get("x", Float.class);
-            Float objY = obj.getProperties().get("y", Float.class);
-            if (objX == null || objY == null) continue;
+        // Дополнительный слой enemy2 — можно ставить, например, колесных ботов
+        MapLayer layer2 = map.getLayers().get("enemy2");
+        if (layer2 != null) {
+            for (MapObject obj : layer2.getObjects()) {
+                Float objX = obj.getProperties().get("x", Float.class);
+                Float objY = obj.getProperties().get("y", Float.class);
+                if (objX == null || objY == null) continue;
 
-            float x = objX / PPM;
-            float y = objY / PPM;
+                float x = objX / PPM;
+                float y = objY / PPM;
 
-            String enemyType = obj.getProperties().get("type", "zapper", String.class);
-            enemies.add(new Enemy(world, new Vector2(x, y), enemyType));
+                // по умолчанию считаем, что enemy2 — это колесные боты
+                String enemyType = obj.getProperties().get("type", "wheel", String.class);
+                enemies.add(new Enemy(world, new Vector2(x, y), enemyType));
+            }
         }
     }
 

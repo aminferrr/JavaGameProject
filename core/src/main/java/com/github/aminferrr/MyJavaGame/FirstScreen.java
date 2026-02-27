@@ -149,12 +149,18 @@ public class FirstScreen extends ScreenAdapter {
 
         for (int i = 1; i <= totalLevels; i++) {
             final int level = i;
-            TextButton levelBtn = new TextButton("Level " + i, skin);
+            TextButton levelBtn = new TextButton("Level " + level, skin);
 
             levelBtn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-                    game.setScreen(new PlayingScreen(game));
+                    if (level == 1) {
+                        game.setScreen(new PlayingScreen(game));
+                    } else if (level == 2) {
+                        game.setScreen(new Level2Screen(game));
+                    } else {
+                        game.setScreen(new PlayingScreen(game));
+                    }
                 }
             });
 
