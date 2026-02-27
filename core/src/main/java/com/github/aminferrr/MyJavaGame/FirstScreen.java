@@ -15,6 +15,11 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public class FirstScreen extends ScreenAdapter {
 
@@ -41,15 +46,13 @@ public class FirstScreen extends ScreenAdapter {
     // ===== COLLISION: ONLY BUILDS =====
     private TiledMapTileLayer builds;
 
-    // ===== PLAYER (логический хитбокс) =====
+    // ===== PLAYER =====
     private float playerW = 16f;
     private float playerH = 20f;
-
     private float playerX = 100f;
     private float playerY = 60f;
 
-    // ===== FOOT HITBOX (коллизия только по ногам) =====
-    // ширина ног чуть меньше, высота ног маленькая
+    // ===== FOOT HITBOX =====
     private float footW = 12f;
     private float footH = 6f;
 
@@ -58,15 +61,20 @@ public class FirstScreen extends ScreenAdapter {
     // ===== SPRITE =====
     private static final int FRAME_W = 48;
     private static final int FRAME_H = 64;
-
     private static final float DRAW_W = 48f;
     private static final float DRAW_H = 64f;
 
     private Texture idleDownSheet;
     private Texture walkDownSheet;
-
     private Animation<TextureRegion> idleDownAnim;
     private Animation<TextureRegion> walkDownAnim;
+
+    // ===== UI =====
+    private Stage stage;
+    private Skin skin;
+    private Window levelsWindow;
+    private Window settingsWindow;
+    private boolean soundEnabled = true;
 
     public FirstScreen(Main game) {
         this.game = game;
@@ -89,7 +97,124 @@ public class FirstScreen extends ScreenAdapter {
         idleDownAnim = makeAnimAuto(idleDownSheet, FRAME_W, FRAME_H, 0.18f);
         walkDownAnim = makeAnimAuto(walkDownSheet, FRAME_W, FRAME_H, 0.12f);
 
+        // ===== UI INIT =====
+        stage = new Stage(new ScreenViewport());
+        Gdx.input.setInputProcessor(stage); // ← ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ!
+        skin = new Skin(Gdx.files.internal("uiskin.json"));
+
+        createTopButtons();
+        createLevelsWindow();
+        createSettingsWindow();
+
         updateCameraClamped();
+    }
+
+    private void createTopButtons() {
+        TextButton levelsBtn = new TextButton("Levels", skin);
+        levelsBtn.setPosition(20, Gdx.graphics.getHeight() - 70);
+
+        levelsBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                levelsWindow.setVisible(true);
+            }
+        });
+
+        TextButton settingsBtn = new TextButton("Settings", skin);
+        settingsBtn.setPosition(150, Gdx.graphics.getHeight() - 70);
+
+        settingsBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                settingsWindow.setVisible(true);
+            }
+        });
+
+        stage.addActor(levelsBtn);
+        stage.addActor(settingsBtn);
+    }
+
+    private void createLevelsWindow() {
+        levelsWindow = new Window("Select Level", skin);
+        levelsWindow.setSize(500, 350);
+        levelsWindow.setPosition(
+            Gdx.graphics.getWidth()/2f - 250,
+            Gdx.graphics.getHeight()/2f - 175
+        );
+
+        Table table = new Table();
+        table.defaults().pad(10);
+
+        int totalLevels = 10;
+
+        for (int i = 1; i <= totalLevels; i++) {
+            final int level = i;
+            TextButton levelBtn = new TextButton("Level " + i, skin);
+
+            levelBtn.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    game.setScreen(new PlayingScreen(game));
+                }
+            });
+
+            table.add(levelBtn).width(120).height(50);
+            if (i % 5 == 0) table.row();
+        }
+
+        TextButton close = new TextButton("Close", skin);
+        close.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                levelsWindow.setVisible(false);
+            }
+        });
+
+        table.row();
+        table.add(close).colspan(5).padTop(20);
+
+        levelsWindow.add(table);
+        levelsWindow.setVisible(false);
+        stage.addActor(levelsWindow);
+    }
+
+    private void createSettingsWindow() {
+        settingsWindow = new Window("Settings", skin);
+        settingsWindow.setSize(400, 250);
+        settingsWindow.setPosition(
+            Gdx.graphics.getWidth()/2f - 200,
+            Gdx.graphics.getHeight()/2f - 125
+        );
+
+        Table table = new Table();
+        table.defaults().pad(10);
+
+        CheckBox soundCheck = new CheckBox(" Sound Enabled", skin);
+        soundCheck.setChecked(soundEnabled);
+
+        soundCheck.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                soundEnabled = soundCheck.isChecked();
+                System.out.println("Sound: " + soundEnabled);
+            }
+        });
+
+        TextButton close = new TextButton("Close", skin);
+        close.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                settingsWindow.setVisible(false);
+            }
+        });
+
+        table.add(soundCheck);
+        table.row();
+        table.add(close).padTop(20);
+
+        settingsWindow.add(table);
+        settingsWindow.setVisible(false);
+        stage.addActor(settingsWindow);
     }
 
     @Override
@@ -98,6 +223,7 @@ public class FirstScreen extends ScreenAdapter {
             game.setScreen(new PlayingScreen(game));
             return;
         }
+
         stateTime += delta;
 
         boolean moving = updatePlayerMovement(delta);
@@ -119,11 +245,14 @@ public class FirstScreen extends ScreenAdapter {
         renderer.getBatch().begin();
         renderer.getBatch().draw(frame, drawX, drawY, DRAW_W, DRAW_H);
         renderer.getBatch().end();
+
+        // Рисуем UI поверх игры
+        stage.act(delta);
+        stage.draw();
     }
 
     private boolean updatePlayerMovement(float delta) {
         float speed = 140f;
-
         float dx = 0f, dy = 0f;
 
         if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))  dx -= speed * delta;
@@ -140,11 +269,9 @@ public class FirstScreen extends ScreenAdapter {
             return moving;
         }
 
-        // X отдельно
         float nextX = playerX + dx;
         if (!isBlockedFeet(nextX, playerY)) playerX = nextX;
 
-        // Y отдельно
         float nextY = playerY + dy;
         if (!isBlockedFeet(playerX, nextY)) playerY = nextY;
 
@@ -152,7 +279,6 @@ public class FirstScreen extends ScreenAdapter {
         return moving;
     }
 
-    // ===== CAMERA FOLLOW + CLAMP =====
     private void updateCameraClamped() {
         float halfW = viewport.getWorldWidth() / 2f;
         float halfH = viewport.getWorldHeight() / 2f;
@@ -172,17 +298,14 @@ public class FirstScreen extends ScreenAdapter {
         playerY = MathUtils.clamp(playerY, 0, WORLD_H - playerH);
     }
 
-    // ===== COLLISION BY FEET ONLY =====
     private boolean isBlockedFeet(float px, float py) {
-        // ноги находятся внизу хитбокса
         float footX = px + (playerW - footW) / 2f;
-        float footY = py; // самый низ
-
+        float footY = py;
         float eps = 0.01f;
 
-        return isBlockedPoint(footX,              footY) ||
+        return isBlockedPoint(footX, footY) ||
             isBlockedPoint(footX + footW - eps, footY) ||
-            isBlockedPoint(footX,              footY + footH - eps) ||
+            isBlockedPoint(footX, footY + footH - eps) ||
             isBlockedPoint(footX + footW - eps, footY + footH - eps);
     }
 
@@ -194,7 +317,6 @@ public class FirstScreen extends ScreenAdapter {
         return cell != null && cell.getTile() != null;
     }
 
-    // ===== ANIMATION =====
     private Animation<TextureRegion> makeAnimAuto(Texture sheet, int frameW, int frameH, float frameDuration) {
         int columns = sheet.getWidth() / frameW;
         TextureRegion[][] grid = TextureRegion.split(sheet, frameW, frameH);
@@ -214,6 +336,7 @@ public class FirstScreen extends ScreenAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height);
+        stage.getViewport().update(width, height, true);
         updateCameraClamped();
     }
 
@@ -223,6 +346,7 @@ public class FirstScreen extends ScreenAdapter {
         if (map != null) map.dispose();
         if (idleDownSheet != null) idleDownSheet.dispose();
         if (walkDownSheet != null) walkDownSheet.dispose();
+        if (stage != null) stage.dispose();
+        if (skin != null) skin.dispose();
     }
-
 }

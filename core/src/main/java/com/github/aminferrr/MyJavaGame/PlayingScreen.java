@@ -3,6 +3,7 @@ package com.github.aminferrr.MyJavaGame;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.PolygonMapObject;
@@ -39,6 +40,7 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
     private Array<Enemy> enemies;
 
     private SpriteBatch batch;
+    private BitmapFont font;
 
     private boolean leftPressed, rightPressed, jumpPressed, attackPressed;
 
@@ -50,6 +52,13 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
 
     // ===== ДОБАВЛЕНО: для отслеживания земли =====
     private boolean playerGrounded = false;
+
+    // Боевая система игрока
+    private int score = 0;
+    private Vector2 playerSpawn;
+    private float playerAttackCooldown = 0.4f;
+    private float playerAttackTimer = 0f;
+    private float playerAttackRange = 1.5f;
 
     public PlayingScreen(Main game) {
         this.game = game;
@@ -70,6 +79,9 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
         setupContactListener(); // ← теперь используется обновленный listener
 
         batch = new SpriteBatch();
+        font = new BitmapFont();
+        // Шрифт сильно уменьшаем под масштаб мира (PPM = 16)
+        font.getData().setScale(0.06f);
 
         int tilesW = map.getProperties().get("width", Integer.class);
         int tilesH = map.getProperties().get("height", Integer.class);
@@ -82,6 +94,7 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
         createCollisionsFromTileLayer();
 
         player = new Player(world);
+        playerSpawn = player.body.getPosition().cpy();
 
         enemies = new Array<>();
         createEnemiesFromTiled();
@@ -251,14 +264,15 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
         }
 
         for (MapObject obj : layer.getObjects()) {
-            if (obj instanceof RectangleMapObject rectObj) {
-                Rectangle rect = rectObj.getRectangle();
-                float x = (rect.x + rect.width / 2) / PPM;
-                float y = (rect.y + rect.height / 2) / PPM;
+            Float objX = obj.getProperties().get("x", Float.class);
+            Float objY = obj.getProperties().get("y", Float.class);
+            if (objX == null || objY == null) continue;
 
-                String enemyType = obj.getProperties().get("type", "zapper", String.class);
-                enemies.add(new Enemy(world, new Vector2(x, y), enemyType));
-            }
+            float x = objX / PPM;
+            float y = objY / PPM;
+
+            String enemyType = obj.getProperties().get("type", "zapper", String.class);
+            enemies.add(new Enemy(world, new Vector2(x, y), enemyType));
         }
     }
 
@@ -270,6 +284,8 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
         ScreenUtils.clear(0.1f,0.1f,0.15f,1);
 
         world.step(1/60f,6,2);
+
+        playerAttackTimer += delta;
 
         // ===== ИСПРАВЛЕНО: передаем playerGrounded в update =====
         player.update(delta, leftPressed, rightPressed, jumpPressed, attackPressed, playerGrounded);
@@ -284,12 +300,40 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
             Gdx.app.log("DEBUG", "jumpPressed = " + jumpPressed);
         }
 
+        // Обновление врагов и их поведения
         for (Enemy enemy : enemies) {
-            if (enemy.alive) enemy.update(delta, player.body.getPosition());
+            if (enemy.alive) enemy.update(delta, player);
         }
 
+        // Атака игрока по врагам (ближний бой)
+        if (attackPressed && playerAttackTimer >= playerAttackCooldown && player.alive) {
+            boolean hit = false;
+            Vector2 playerPos = player.body.getPosition();
+            for (Enemy enemy : enemies) {
+                if (!enemy.alive) continue;
+                if (playerPos.dst(enemy.body.getPosition()) <= playerAttackRange) {
+                    enemy.takeDamage(25);
+                    hit = true;
+                }
+            }
+            if (hit) {
+                playerAttackTimer = 0f;
+            }
+        }
+
+        // Удаляем мертвых врагов и даем очки
         for (int i=enemies.size-1;i>=0;i--) {
-            if (!enemies.get(i).alive) enemies.removeIndex(i);
+            Enemy e = enemies.get(i);
+            if (!e.alive) {
+                enemies.removeIndex(i);
+                score++;
+            }
+        }
+
+        // Проверка смерти игрока при падении вниз и респавн
+        Vector2 pos = player.body.getPosition();
+        if (pos.y < -2f || !player.alive) {
+            respawnPlayer();
         }
 
         updateCamera();
@@ -300,6 +344,15 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
         batch.begin();
         player.render(batch);
         for (Enemy enemy : enemies) enemy.render(batch);
+
+        // Отрисовка интерфейса
+        font.draw(batch, "Score: " + score,
+                camera.position.x - VIEW_W/2f + 0.5f,
+                camera.position.y + VIEW_H/2f - 0.5f);
+
+        font.draw(batch, "HP: " + player.health,
+                camera.position.x - VIEW_W/2f + 0.5f,
+                camera.position.y + VIEW_H/2f - 1.5f);
         batch.end();
 
         if (debugMode) debugRenderer.render(world, camera.combined);
@@ -329,6 +382,16 @@ public class PlayingScreen extends ScreenAdapter implements InputProcessor {
         map.dispose(); renderer.dispose(); world.dispose(); debugRenderer.dispose(); batch.dispose();
         player.dispose();
         for (Enemy enemy : enemies) enemy.dispose();
+        if (font != null) font.dispose();
+    }
+
+    private void respawnPlayer() {
+        if (playerSpawn == null) return;
+        player.body.setTransform(playerSpawn, 0);
+        player.body.setLinearVelocity(0, 0);
+        player.health = 100;
+        player.alive = true;
+        playerGrounded = false;
     }
 
     // ===== InputProcessor =====

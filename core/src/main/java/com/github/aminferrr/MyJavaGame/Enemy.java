@@ -21,11 +21,11 @@ public class Enemy {
     private Animation<TextureRegion> runAnimation;
     private Animation<TextureRegion> attackAnimation;
     private Animation<TextureRegion> deathAnimation;
-    private Animation<TextureRegion> wakeAnimation; // Для Droid Zapper
+    private Animation<TextureRegion> wakeAnimation; // Для старых типов врагов (если нужны)
 
     // Типы врагов
     public enum EnemyType {
-        ZAPPER("zapper"),    // Атакующий дроид
+        ZAPPER("zapper"),    // Теперь используем Toaster Bot
         SHIELD("shield");    // Защитный дроид
 
         private final String type;
@@ -34,6 +34,9 @@ public class Enemy {
     }
 
     private EnemyType type;
+
+    // Пикселей в одном "метре" мира — как в PlayingScreen
+    private static final float PPM = 16f;
 
     private final float speed = 3f;
     private final float attackRange = 1.5f;
@@ -57,12 +60,16 @@ public class Enemy {
         loadAnimations();
         animManager = new AnimationManager();
     }
-
+    private void moveTo(Vector2 target) {
+        Vector2 direction = target.cpy().sub(body.getPosition()).nor();
+        body.setLinearVelocity(direction.x * speed, body.getLinearVelocity().y);
+    }
     private void createBody(World world, Vector2 spawnPos) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
         bodyDef.position.set(spawnPos);
         bodyDef.fixedRotation = true;
+
 
         body = world.createBody(bodyDef);
 
@@ -74,8 +81,11 @@ public class Enemy {
         fixtureDef.density = 1.2f;
         fixtureDef.friction = 0.4f;
 
+        body.setFixedRotation(true);
+        body.setGravityScale(1f);
         Fixture fixture = body.createFixture(fixtureDef);
         fixture.setUserData("enemy");
+        body.setUserData(this);
         shape.dispose();
     }
 
@@ -83,12 +93,12 @@ public class Enemy {
         String basePath = "characters/droids/";
 
         if (type == EnemyType.ZAPPER) {
-            basePath += "Droid Zapper/";
-            wakeAnimation = createAnimation(basePath + "wake.png", 4, 0.15f);
-            runAnimation = createAnimation(basePath + "run.png", 6, 0.1f);
-            attackAnimation = createAnimation(basePath + "attack.png", 4, 0.1f);
-            deathAnimation = createAnimation(basePath + "damaged and death.png", 6, 0.1f);
-            idleAnimation = wakeAnimation; // Временно используем wake как idle
+            // Используем спрайты Toaster Bot
+            basePath += "Toaster Bot/";
+            idleAnimation = createToasterAnimation(basePath + "idle.png", 0.15f);
+            runAnimation = createToasterAnimation(basePath + "run.png", 0.1f);
+            attackAnimation = createToasterAnimation(basePath + "attack.png", 0.1f);
+            deathAnimation = createToasterAnimation(basePath + "death.png", 0.1f);
         } else {
             basePath += "shield droid/";
             idleAnimation = createAnimation(basePath + "static idle.png", 4, 0.15f);
@@ -113,51 +123,60 @@ public class Enemy {
         return new Animation<>(frameDuration, frames);
     }
 
-    public void update(float delta, Vector2 playerPos) {
+    // Специальный вариант для Toaster Bot:
+    // размер одного кадра 106x22, количество кадров считаем по ширине текстуры
+    private Animation<TextureRegion> createToasterAnimation(String filePath, float frameDuration) {
+        Array<TextureRegion> frames = new Array<>();
+
+        com.badlogic.gdx.graphics.Texture tex = new com.badlogic.gdx.graphics.Texture(filePath);
+        int frameWidth = 106;
+        int frameHeight = 22;
+        int frameCount = tex.getWidth() / frameWidth;
+
+        for (int i = 0; i < frameCount; i++) {
+            frames.add(new TextureRegion(tex, i * frameWidth, 0, frameWidth, frameHeight));
+        }
+
+        return new Animation<>(frameDuration, frames);
+    }
+
+    public void update(float delta, Player player) {
         if (!alive) {
             currentState = State.DEAD;
+            body.setLinearVelocity(0, 0);
             animManager.update(delta);
             return;
         }
 
+        Vector2 playerPos = player.body.getPosition();
         Vector2 enemyPos = body.getPosition();
+
         float distanceToPlayer = enemyPos.dst(playerPos);
         float distanceToSpawn = enemyPos.dst(spawnPoint);
 
-        // Обновляем таймеры
-        if (currentState != State.ATTACKING) {
-            attackTimer += delta;
+        attackTimer += delta;
+
+        // Если слишком далеко от spawn — возвращаемся
+        if (distanceToSpawn > patrolRadius) {
+            moveTo(spawnPoint);
+            currentState = State.RUNNING;
         }
-
-        // State machine для поведения врага
-        State newState = currentState;
-
-        // Если игрок далеко - патрулируем
-        if (distanceToPlayer > 6f) {
-            newState = State.IDLE;
+        // Если игрок далеко — патрулируем
+        else if (distanceToPlayer > 6f) {
             patrol(delta);
+            currentState = State.IDLE;
         }
-        // Если игрок в зоне видимости - преследуем
+        // Если игрок в зоне преследования
         else if (distanceToPlayer > attackRange) {
-            newState = State.RUNNING;
             chasePlayer(playerPos);
+            currentState = State.RUNNING;
         }
-        // Если игрок в зоне атаки - атакуем
+        // Если в зоне атаки
         else if (attackTimer >= attackCooldown) {
-            newState = State.ATTACKING;
+            body.setLinearVelocity(0, body.getLinearVelocity().y);
+            currentState = State.ATTACKING;
             attackTimer = 0;
-            body.setLinearVelocity(0, 0);
-        }
-
-        // Не уходить далеко от точки спавна
-        if (distanceToSpawn > patrolRadius * 2) {
-            // Возвращаемся к точке спавна
-            Vector2 direction = spawnPoint.cpy().sub(enemyPos).nor();
-            body.setLinearVelocity(direction.scl(speed));
-        }
-
-        if (newState != currentState) {
-            currentState = newState;
+            player.takeDamage(10);
         }
 
         animManager.update(delta);
@@ -166,7 +185,7 @@ public class Enemy {
     private void patrol(float delta) {
         patrolTimer += delta;
 
-        if (patrolTimer > 2f) {
+        if (patrolTimer >= 2f) {
             movingRight = !movingRight;
             patrolTimer = 0;
         }
@@ -177,8 +196,8 @@ public class Enemy {
 
     private void chasePlayer(Vector2 playerPos) {
         Vector2 enemyPos = body.getPosition();
-        Vector2 direction = playerPos.cpy().sub(enemyPos).nor();
-        body.setLinearVelocity(direction.scl(speed));
+        float dir = playerPos.x > enemyPos.x ? 1 : -1;
+        body.setLinearVelocity(dir * speed, body.getLinearVelocity().y);
     }
 
     public void render(SpriteBatch batch) {
@@ -202,22 +221,26 @@ public class Enemy {
                 frame.flip(true, false);
             }
 
-            float width = 1f;
-            float height = 2f;
+            float width;
+            float height;
 
-            // Цветовая подсветка для разных типов
             if (type == EnemyType.ZAPPER) {
-                batch.setColor(Color.RED);
+                // Для Toaster Bot сохраняем пропорции спрайта
+                float spriteW = frame.getRegionWidth() / PPM;
+                float spriteH = frame.getRegionHeight() / PPM;
+                float scale = 1.0f; // при необходимости можно уменьшить/увеличить
+                width = spriteW * scale;
+                height = spriteH * scale;
             } else {
-                batch.setColor(Color.CYAN);
+                // Старый вертикальный враг
+                width = 1f;
+                height = 2f;
             }
 
             batch.draw(frame,
                 pos.x - width/2,
                 pos.y - height/2,
                 width, height);
-
-            batch.setColor(Color.WHITE);
         }
     }
 

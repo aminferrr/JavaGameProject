@@ -14,45 +14,53 @@ public class Player {
     public int health = 100;
 
     // АНИМАЦИИ
-    private Texture idleSheet;
-    private Texture walkSheet;
-    private Texture jumpSheet;
     private Animation<TextureRegion> idleAnim;
-    private Animation<TextureRegion> walkAnim;
-    private Animation<TextureRegion> jumpAnim;
+    private Animation<TextureRegion> runRightAnim;
+    private Animation<TextureRegion> runLeftAnim;
+    private Animation<TextureRegion> attackRightAnim;
+    private Animation<TextureRegion> attackLeftAnim;
     private float stateTime = 0f;
+
+    // ТЕКСТУРЫ
+    private Texture moveSheet;
+    private Texture attackSheet;
 
     // РАЗМЕРЫ
     private static final float PPM = 16f;
-    private static final float PLAYER_WIDTH = 1.0f;      // 16px / 16 = 1м
-    private static final float PLAYER_HEIGHT = 1.5f;     // 24px / 16 = 1.5м
+    // Физический размер тела (16x32 пикселей)
+    private static final float PLAYER_WIDTH = 16f / PPM;      // 1 м
+    private static final float PLAYER_HEIGHT = 32f / PPM;     // 2 м
 
-    // РАЗМЕРЫ СПРАЙТА
-    private static final int FRAME_WIDTH = 48;
-    private static final int FRAME_HEIGHT = 64;
-    private static final float SPRITE_WIDTH = 3f;        // 48/16 = 3м
-    private static final float SPRITE_HEIGHT = 4f;       // 64/16 = 4м
+    // РАЗМЕРЫ СПРАЙТА ДЛЯ ХОДЬБЫ (16x32)
+    private static final int MOVE_FRAME_WIDTH = 16;
+    private static final int MOVE_FRAME_HEIGHT = 32;
+    private static final float MOVE_SPRITE_WIDTH = 16f / PPM;     // 1 м
+    private static final float MOVE_SPRITE_HEIGHT = 32f / PPM;    // 2 м
 
-    // Смещение спрайта
-    private float spriteOffsetX;
-    private float spriteOffsetY;
+    // РАЗМЕРЫ СПРАЙТА ДЛЯ АТАКИ (32x32)
+    private static final int ATTACK_FRAME_WIDTH = 32;
+    private static final int ATTACK_FRAME_HEIGHT = 32;
+    private static final float ATTACK_SPRITE_WIDTH = 32f / PPM;   // 2 м
+    private static final float ATTACK_SPRITE_HEIGHT = 32f / PPM;  // 2 м
 
     // ВИЗУАЛЬНОЕ СМЕЩЕНИЕ ВВЕРХ
-    private static final float VISUAL_OFFSET_Y = 0.3f;
+    private static final float VISUAL_OFFSET_Y = 0.1f;
 
     // ДЛЯ ПРЫЖКА
     public boolean isGrounded = false;
-    private static final float JUMP_FORCE = 25f;  // ЕЩЕ УВЕЛИЧИЛ СИЛУ ПРЫЖКА
+    private static final float JUMP_FORCE = 16f;
 
     private boolean facingRight = true;
     private final float speed = 8f;
 
+    // Состояние атаки
+    private boolean attacking = false;
+    private float attackTimer = 0f;
+    private final float attackAnimDuration = 0.4f;
+
     public Player(World world) {
         createBody(world);
         loadAnimations();
-
-        spriteOffsetX = (SPRITE_WIDTH - PLAYER_WIDTH) / 2f;
-        spriteOffsetY = (SPRITE_HEIGHT - PLAYER_HEIGHT);
     }
 
     private void createBody(World world) {
@@ -77,13 +85,12 @@ public class Player {
         mainFixture.setUserData("player");
         mainShape.dispose();
 
-        // ===== БОЛЬШОЙ СЕНСОР НОГ =====
+        // ===== СЕНСОР НОГ =====
         PolygonShape footShape = new PolygonShape();
 
-        // Делаем сенсор очень большим и низким
-        float footWidth = PLAYER_WIDTH * 2.0f;  // 200% ширины игрока
-        float footHeight = 0.8f;                 // 80 см высота
-        float footOffsetY = -PLAYER_HEIGHT/2 - 0.2f; // 20 см ниже ног
+        float footWidth = PLAYER_WIDTH * 1.2f;
+        float footHeight = 0.2f;
+        float footOffsetY = -PLAYER_HEIGHT/2 - 0.05f - 0.5f;
 
         footShape.setAsBox(footWidth/2, footHeight/2, new Vector2(0, footOffsetY), 0);
 
@@ -97,29 +104,32 @@ public class Player {
 
         footShape.dispose();
 
-        Gdx.app.log("PLAYER", "Создан сенсор ног: позиция Y=" + footOffsetY +
-            " ширина=" + footWidth + " высота=" + footHeight);
+        Gdx.app.log("PLAYER", "Создан сенсор ног");
     }
 
     private void loadAnimations() {
-        idleSheet = new Texture("characters/player/Idle/Idle_Down.png");
-        walkSheet = new Texture("characters/player/Walk/walk_Right_Down.png");
-        jumpSheet = new Texture("characters/player/Idle/Idle_Right_Up.png");
+        // ===== ХОДЬБА =====
+        moveSheet = new Texture("characters/player/walking.png");
+        TextureRegion[][] moveGrid = TextureRegion.split(moveSheet, MOVE_FRAME_WIDTH, MOVE_FRAME_HEIGHT);
 
-        idleAnim = createAnimation(idleSheet, 4, 0.15f);
-        walkAnim = createAnimation(walkSheet, 6, 0.1f);
-        jumpAnim = createAnimation(jumpSheet, 4, 0.15f);
-    }
+        // Стоим (первый кадр первой строки)
+        idleAnim = new Animation<>(0.5f, new TextureRegion[]{ moveGrid[0][0] });
 
-    private Animation<TextureRegion> createAnimation(Texture sheet, int frameCount, float frameDuration) {
-        TextureRegion[][] grid = TextureRegion.split(sheet, FRAME_WIDTH, FRAME_HEIGHT);
-        TextureRegion[] frames = new TextureRegion[frameCount];
+        // Бег вправо (2-я строка)
+        runRightAnim = new Animation<>(0.1f, moveGrid[1]);
 
-        for (int i = 0; i < frameCount && i < grid[0].length; i++) {
-            frames[i] = grid[0][i];
-        }
+        // Бег влево (4-я строка)
+        runLeftAnim = new Animation<>(0.1f, moveGrid[3]);
 
-        return new Animation<>(frameDuration, frames);
+        // ===== АТАКА =====
+        attackSheet = new Texture("characters/player/attack.png");
+        TextureRegion[][] attackGrid = TextureRegion.split(attackSheet, ATTACK_FRAME_WIDTH, ATTACK_FRAME_HEIGHT);
+
+        // Атака вправо (3-я строка, индекс 2)
+        attackRightAnim = new Animation<>(0.08f, attackGrid[2]);
+
+        // Атака влево (4-я строка, индекс 3)
+        attackLeftAnim = new Animation<>(0.08f, attackGrid[3]);
     }
 
     public void update(float delta, boolean left, boolean right, boolean jump, boolean attack, boolean groundedFromContact) {
@@ -129,6 +139,18 @@ public class Player {
 
         // Обновляем состояние земли
         this.isGrounded = groundedFromContact;
+
+        // === Обновление состояния атаки ===
+        if (attack && !attacking) {
+            attacking = true;
+            attackTimer = 0f;
+        }
+        if (attacking) {
+            attackTimer += delta;
+            if (attackTimer >= attackAnimDuration) {
+                attacking = false;
+            }
+        }
 
         Vector2 vel = body.getLinearVelocity();
 
@@ -147,11 +169,9 @@ public class Player {
 
         // ПРЫЖОК
         if (jump && isGrounded) {
-            // Сбрасываем вертикальную скорость
             body.setLinearVelocity(vel.x, 0);
-            // Применяем импульс вверх
             body.applyLinearImpulse(0, JUMP_FORCE, body.getWorldCenter().x, body.getWorldCenter().y, true);
-            Gdx.app.log("JUMP", "ПРЫЖОК! Сила=" + JUMP_FORCE + " isGrounded=" + isGrounded);
+            Gdx.app.log("JUMP", "ПРЫЖОК!");
         }
     }
 
@@ -162,29 +182,40 @@ public class Player {
 
         // ВЫБОР АНИМАЦИИ
         boolean moving = Math.abs(body.getLinearVelocity().x) > 0.1f;
-        boolean inAir = !isGrounded;
 
         TextureRegion frame;
-        if (inAir) {
-            frame = jumpAnim.getKeyFrame(stateTime, true);
+        float drawWidth, drawHeight;
+
+        if (attacking) {
+            // Во время атаки — анимация атаки с размером 32x32
+            if (facingRight) {
+                frame = attackRightAnim.getKeyFrame(attackTimer, false);
+            } else {
+                frame = attackLeftAnim.getKeyFrame(attackTimer, false);
+            }
+            drawWidth = ATTACK_SPRITE_WIDTH;
+            drawHeight = ATTACK_SPRITE_HEIGHT;
         } else if (moving) {
-            frame = walkAnim.getKeyFrame(stateTime, true);
+            // Бег — анимация бега с размером 16x32
+            if (facingRight) {
+                frame = runRightAnim.getKeyFrame(stateTime, true);
+            } else {
+                frame = runLeftAnim.getKeyFrame(stateTime, true);
+            }
+            drawWidth = MOVE_SPRITE_WIDTH;
+            drawHeight = MOVE_SPRITE_HEIGHT;
         } else {
+            // Стоим на месте
             frame = idleAnim.getKeyFrame(stateTime, true);
+            drawWidth = MOVE_SPRITE_WIDTH;
+            drawHeight = MOVE_SPRITE_HEIGHT;
         }
 
-        // ПОВОРОТ
-        if (!facingRight && !frame.isFlipX()) {
-            frame.flip(true, false);
-        } else if (facingRight && frame.isFlipX()) {
-            frame.flip(true, false);
-        }
+        // Центрируем спрайт по физическому телу
+        float drawX = pos.x - drawWidth / 2f;
+        float drawY = pos.y - drawHeight / 2f + VISUAL_OFFSET_Y- 0.5f;
 
-        // РИСУЕМ
-        float drawX = pos.x - spriteOffsetX;
-        float drawY = pos.y - spriteOffsetY + VISUAL_OFFSET_Y;
-
-        batch.draw(frame, drawX, drawY, SPRITE_WIDTH, SPRITE_HEIGHT);
+        batch.draw(frame, drawX, drawY, drawWidth, drawHeight);
     }
 
     public void takeDamage(int dmg) {
@@ -193,8 +224,7 @@ public class Player {
     }
 
     public void dispose() {
-        if (idleSheet != null) idleSheet.dispose();
-        if (walkSheet != null) walkSheet.dispose();
-        if (jumpSheet != null) jumpSheet.dispose();
+        if (moveSheet != null) moveSheet.dispose();
+        if (attackSheet != null) attackSheet.dispose();
     }
 }
