@@ -8,9 +8,13 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 import com.github.aminferrr.MyJavaGame.elements.NPC;
 import com.github.aminferrr.MyJavaGame.elements.Player;
+
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class NPCHandler {
 
@@ -18,33 +22,44 @@ public class NPCHandler {
     private final NPC dialogNpc;
     private final NPC thirdDialogNpc;
 
+    // 🔥 список всех NPC
+    private final List<NPC> allNpcs = new ArrayList<>();
+
     private final TextButton talkButton;
     private final DialogueManager dialogueManager;
 
     private boolean isNearStoryNpc = false;
     private boolean isNearThirdNpc = false;
 
-    // ===== Флаги авто-диалогов =====
-    private boolean firstAutoStarted = false;
-    private boolean secondAutoStarted = false;
-
     private static final float INTERACT_DISTANCE = 50f;
 
-    public NPCHandler(Stage stage, Skin skin, TiledMapTileLayer collisionLayer, Player player) {
+    public NPCHandler(Stage stage, Skin skin,
+                      TiledMapTileLayer collisionLayer,
+                      Player player) {  // БЕЗ КАМЕРЫ!
 
-        patrolNpc = new NPC(100f, 60f, 80f, 150f, "characters.png");
+        // ===== Создание NPC =====
+
+        patrolNpc = new NPC(100f, 60f, 80f, 150f, "nps/mike_anim.png");
         patrolNpc.setCollisionLayer(collisionLayer);
         patrolNpc.setCanMove(true);
 
-        dialogNpc = new NPC(300f, 60f, 300f, 300f, "nps/lisa/lisa_anim.png");
+        dialogNpc = new NPC(300f, 60f, 300f, 300f, "nps/lisa_anim.png");
         dialogNpc.setCollisionLayer(collisionLayer);
         dialogNpc.setCanMove(false);
 
-        thirdDialogNpc = new NPC(1050f, 60f, 1050f, 1050f, "nps/lisa/lisa_anim.png");
+        thirdDialogNpc = new NPC(1050f, 60f, 1050f, 1050f, "nps/nps_1.png");
         thirdDialogNpc.setCollisionLayer(collisionLayer);
         thirdDialogNpc.setCanMove(false);
 
-        player.setNpc(patrolNpc);
+        // ===== Добавляем всех в список =====
+        allNpcs.add(patrolNpc);
+        allNpcs.add(dialogNpc);
+        allNpcs.add(thirdDialogNpc);
+
+        // 🔥 Передаём список игроку (для коллизий)
+        player.setNpcs(allNpcs);
+
+        // ===== UI =====
 
         talkButton = new TextButton("Talk", skin);
         talkButton.setSize(60, 20);
@@ -53,29 +68,30 @@ public class NPCHandler {
 
         dialogueManager = new DialogueManager(stage);
 
-        // ===== Запускаем только первый авто-диалог =====
-        startAutomaticDialogue();
-
         talkButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
 
-                if (dialogueManager.isActive() && dialogueManager.isWaitingForAnswer())
+                if (dialogueManager.isActive() &&
+                    dialogueManager.isWaitingForAnswer())
                     return;
 
                 dialogueManager.stopCurrentSound();
 
                 if (isNearStoryNpc) {
                     dialogueManager.startDialogue(
-                        0, 2,
+                        0, 13,
                         "I said you all...",
                         "story1_completed"
                     );
                 }
                 else if (isNearThirdNpc) {
-                    if (dialogueManager.canStartDialogue("story3_completed", "story1_completed")) {
+                    if (dialogueManager.canStartDialogue(
+                        "story3_completed",
+                        "story1_completed")) {
+
                         dialogueManager.startDialogue(
-                            14, 16,
+                            14, 36,
                             "...",
                             "story3_completed"
                         );
@@ -85,25 +101,11 @@ public class NPCHandler {
         });
     }
 
-    // ===== Первый авто-диалог =====
-    private void startAutomaticDialogue() {
-        dialogueManager.startDialogue(0, 13, "", "auto_story1");
-        firstAutoStarted = true;
-    }
-
     public void update(float delta, Player player) {
 
-        patrolNpc.update(delta);
-        dialogNpc.update(delta);
-        thirdDialogNpc.update(delta);
-
-        // ===== Запуск второго авто-диалога после завершения первого =====
-        if (firstAutoStarted &&
-            !dialogueManager.isActive() &&
-            !secondAutoStarted) {
-
-            dialogueManager.startDialogue(14, 36, "", "auto_story2");
-            secondAutoStarted = true;
+        // ===== Обновляем всех NPC =====
+        for (NPC npc : allNpcs) {
+            npc.update(delta);
         }
 
         if (!dialogueManager.isActive()) {
@@ -117,24 +119,14 @@ public class NPCHandler {
 
         if (distance(player, dialogNpc) <= INTERACT_DISTANCE) {
 
-            talkButton.setVisible(true);
-            talkButton.setPosition(
-                dialogNpc.getX(),
-                dialogNpc.getY() + dialogNpc.getHeight() + 5
-            );
-
+            showButtonAbove(dialogNpc);
             isNearStoryNpc = true;
             isNearThirdNpc = false;
 
         }
         else if (distance(player, thirdDialogNpc) <= INTERACT_DISTANCE) {
 
-            talkButton.setVisible(true);
-            talkButton.setPosition(
-                thirdDialogNpc.getX(),
-                thirdDialogNpc.getY() + thirdDialogNpc.getHeight() + 5
-            );
-
+            showButtonAbove(thirdDialogNpc);
             isNearStoryNpc = false;
             isNearThirdNpc = true;
 
@@ -145,6 +137,16 @@ public class NPCHandler {
             isNearStoryNpc = false;
             isNearThirdNpc = false;
         }
+    }
+
+    private void showButtonAbove(NPC npc) {
+        talkButton.setVisible(true);
+
+        // ПРОСТАЯ ПОЗИЦИЯ - как в рабочей версии
+        talkButton.setPosition(
+            npc.getX(),
+            npc.getY() + npc.getHeight() + 5
+        );
     }
 
     private float distance(Player player, NPC npc) {
@@ -161,6 +163,7 @@ public class NPCHandler {
 
     public void render(SpriteBatch batch, Player player) {
 
+        // 🔥 правильная сортировка по Y (только для патрульного)
         float playerBottom = player.getY();
         float patrolBottom = patrolNpc.getY();
 
@@ -199,8 +202,8 @@ public class NPCHandler {
     }
 
     public void dispose() {
-        patrolNpc.dispose();
-        dialogNpc.dispose();
-        thirdDialogNpc.dispose();
+        for (NPC npc : allNpcs) {
+            npc.dispose();
+        }
     }
 }

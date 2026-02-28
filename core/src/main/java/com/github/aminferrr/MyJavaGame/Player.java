@@ -1,6 +1,7 @@
 package com.github.aminferrr.MyJavaGame;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.audio.Sound; // ВАЖНО: добавить импорт!
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -12,6 +13,17 @@ public class Player {
     public Body body;
     public boolean alive = true;
     public int health = 100;
+    private int maxHealth = 100; // Добавлено
+
+    // ЗВУКИ (добавлено)
+    private Sound attackSound;
+    private Sound jumpSound;
+    private Sound hurtSound;
+
+    // ПОЗИЦИЯ ДЛЯ РЕСПАВНА (добавлено)
+    private float spawnX = 10f;
+    private float spawnY = 15f;
+    private Vector2 velocity = new Vector2(); // Для респавна
 
     // АНИМАЦИИ
     private Animation<TextureRegion> idleAnim;
@@ -51,7 +63,7 @@ public class Player {
     private static final float JUMP_FORCE = 16f;
 
     private boolean facingRight = true;
-    private final float speed = 8f;
+    private float speed = 8f; // Теперь не final, чтобы можно было менять
 
     // Состояние атаки
     private boolean attacking = false;
@@ -66,7 +78,7 @@ public class Player {
     private void createBody(World world) {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.DynamicBody;
-        bodyDef.position.set(10f, 15f);
+        bodyDef.position.set(spawnX, spawnY); // Используем spawn координаты
         bodyDef.fixedRotation = true;
 
         body = world.createBody(bodyDef);
@@ -144,34 +156,43 @@ public class Player {
         if (attack && !attacking) {
             attacking = true;
             attackTimer = 0f;
+            // Воспроизводим звук атаки
+            if (attackSound != null) {
+                attackSound.play();
+            }
         }
+
         if (attacking) {
             attackTimer += delta;
             if (attackTimer >= attackAnimDuration) {
                 attacking = false;
             }
-        }
+            // ВО ВРЕМЯ АТАКИ НЕ ДВИГАЕМСЯ
+            body.setLinearVelocity(0, body.getLinearVelocity().y);
+        } else {
+            // ДВИЖЕНИЕ ТОЛЬКО КОГДА НЕ АТАКУЕМ
+            Vector2 vel = body.getLinearVelocity();
+            float vx = 0;
+            if (left) {
+                vx = -speed;
+                facingRight = false;
+            }
+            if (right) {
+                vx = speed;
+                facingRight = true;
+            }
+            body.setLinearVelocity(vx, vel.y);
 
-        Vector2 vel = body.getLinearVelocity();
-
-        // ДВИЖЕНИЕ
-        float vx = 0;
-        if (left) {
-            vx = -speed;
-            facingRight = false;
-        }
-        if (right) {
-            vx = speed;
-            facingRight = true;
-        }
-
-        body.setLinearVelocity(vx, vel.y);
-
-        // ПРЫЖОК
-        if (jump && isGrounded) {
-            body.setLinearVelocity(vel.x, 0);
-            body.applyLinearImpulse(0, JUMP_FORCE, body.getWorldCenter().x, body.getWorldCenter().y, true);
-            Gdx.app.log("JUMP", "ПРЫЖОК!");
+            // ПРЫЖОК
+            if (jump && isGrounded) {
+                body.setLinearVelocity(vel.x, 0);
+                body.applyLinearImpulse(0, JUMP_FORCE, body.getWorldCenter().x, body.getWorldCenter().y, true);
+                Gdx.app.log("JUMP", "ПРЫЖОК!");
+                // Воспроизводим звук прыжка
+                if (jumpSound != null) {
+                    jumpSound.play();
+                }
+            }
         }
     }
 
@@ -213,18 +234,71 @@ public class Player {
 
         // Центрируем спрайт по физическому телу
         float drawX = pos.x - drawWidth / 2f;
-        float drawY = pos.y - drawHeight / 2f + VISUAL_OFFSET_Y- 0.5f;
+        float drawY = pos.y - drawHeight / 2f + VISUAL_OFFSET_Y - 0.5f;
 
         batch.draw(frame, drawX, drawY, drawWidth, drawHeight);
     }
 
     public void takeDamage(int dmg) {
         health -= dmg;
-        if (health <= 0) alive = false;
+        // Воспроизводим звук получения урона
+        if (hurtSound != null) {
+            hurtSound.play();
+        }
+        if (health <= 0) {
+            alive = false;
+        }
+    }
+
+    public float getSpeed() {
+        return speed;
     }
 
     public void dispose() {
         if (moveSheet != null) moveSheet.dispose();
         if (attackSheet != null) attackSheet.dispose();
+    }
+
+    // НОВЫЕ МЕТОДЫ
+    public void setSounds(Sound attackSound, Sound jumpSound, Sound hurtSound) {
+        this.attackSound = attackSound;
+        this.jumpSound = jumpSound;
+        this.hurtSound = hurtSound;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
+        this.health = maxHealth;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
+
+    public boolean isDead() {
+        return health <= 0 || !alive;
+    }
+
+    public void respawn() {
+        health = maxHealth;
+        alive = true;
+        body.setTransform(spawnX, spawnY, 0);
+        body.setLinearVelocity(0, 0);
+    }
+
+    public float getX() {
+        return body.getPosition().x;
+    }
+
+    public float getY() {
+        return body.getPosition().y;
+    }
+
+    public float getWidth() {
+        return PLAYER_WIDTH;
+    }
+
+    public float getHeight() {
+        return PLAYER_HEIGHT;
     }
 }

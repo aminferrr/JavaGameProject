@@ -1,8 +1,10 @@
-package com.github.aminferrr.MyJavaGame.screens;
+package com.github.aminferrr.MyJavaGame;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -12,7 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.github.aminferrr.MyJavaGame.Main;
+import com.github.aminferrr.MyJavaGame.screens.FirstScreen;
 
 public class SettingsScreen implements Screen {
 
@@ -27,8 +29,21 @@ public class SettingsScreen implements Screen {
     // Preferences для сохранения настроек
     private Preferences prefs;
 
+    // Ссылки на музыку и звуки (можно передать из Main)
+    private Music backgroundMusic;
+    private Sound attackSound;
+    private Sound jumpSound;
+
     public SettingsScreen(Main game) {
+        this(game, null, null, null);
+    }
+
+    public SettingsScreen(Main game, Music music, Sound attack, Sound jump) {
         this.game = game;
+        this.backgroundMusic = music;
+        this.attackSound = attack;
+        this.jumpSound = jump;
+
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
 
@@ -36,7 +51,7 @@ public class SettingsScreen implements Screen {
 
         // Инициализируем Preferences
         prefs = Gdx.app.getPreferences("MyGameSettings");
-        musicVolume = prefs.getFloat("musicVolume", 0.5f);  // если нет — 0.5
+        musicVolume = prefs.getFloat("musicVolume", 0.5f);
         soundVolume = prefs.getFloat("soundVolume", 0.5f);
         dialogVolume = prefs.getFloat("dialogVolume", 0.5f);
 
@@ -52,7 +67,13 @@ public class SettingsScreen implements Screen {
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
                 musicVolume = musicSlider.getValue();
                 prefs.putFloat("musicVolume", musicVolume);
-                prefs.flush(); // сохраняем изменения
+                prefs.flush();
+
+                // Применяем громкость к музыке
+                if (backgroundMusic != null) {
+                    backgroundMusic.setVolume(musicVolume);
+                }
+
                 System.out.println("Music Volume: " + musicVolume);
             }
         });
@@ -65,6 +86,8 @@ public class SettingsScreen implements Screen {
                 soundVolume = soundSlider.getValue();
                 prefs.putFloat("soundVolume", soundVolume);
                 prefs.flush();
+
+                // Здесь можно сохранить громкость для использования в игре
                 System.out.println("Sound Volume: " + soundVolume);
             }
         });
@@ -132,9 +155,14 @@ public class SettingsScreen implements Screen {
     @Override public void pause() {}
     @Override public void resume() {}
     @Override public void hide() {}
+
     @Override
     public void dispose() {
         stage.dispose();
     }
-}
 
+    // Геттеры для получения настроек из других экранов
+    public float getMusicVolume() { return musicVolume; }
+    public float getSoundVolume() { return soundVolume; }
+    public float getDialogVolume() { return dialogVolume; }
+}

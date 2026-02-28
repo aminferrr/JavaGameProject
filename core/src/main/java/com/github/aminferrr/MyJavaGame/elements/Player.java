@@ -2,12 +2,16 @@ package com.github.aminferrr.MyJavaGame.elements;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.MathUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Player {
 
@@ -21,28 +25,42 @@ public class Player {
 
     private float playerX = 230f;
     private float playerY = 60f;
+    private float spawnX = 230f;
+    private float spawnY = 60f;
 
     private float stateTime = 0f;
 
     private static final int FRAME_W = 16;
     private static final int FRAME_H = 32;
 
+    // ===== Здоровье и статус =====
+    private int health = 100;
+    private int maxHealth = 100;
+    private boolean alive = true;
+    private float speed = 200f;
+
+    // ===== Атака =====
+    private boolean isAttacking = false;
+    private float attackTimer = 0f;
+    private static final float ATTACK_DURATION = 0.3f;
+
+    // ===== Звуки =====
+    private Sound attackSound;
+    private Sound jumpSound;
+    private Sound hurtSound;
+
     // ===== Анимации =====
     private final Texture texture;
-
     private final Animation<TextureRegion> walkUp;
     private final Animation<TextureRegion> walkDown;
     private final Animation<TextureRegion> walkLeft;
     private final Animation<TextureRegion> walkRight;
-
     private final TextureRegion idleUp;
     private final TextureRegion idleDown;
     private final TextureRegion idleLeft;
     private final TextureRegion idleRight;
-
     private TextureRegion currentFrame;
 
-    // Последнее направление
     private enum Direction {UP, DOWN, LEFT, RIGHT}
     private Direction lastDirection = Direction.DOWN;
 
@@ -50,10 +68,13 @@ public class Player {
 
     // ===== Коллизии =====
     private TiledMapTileLayer collisionLayer;
-    private NPC npc; // <-- добавили NPC
+    private List<NPC> npcs = new ArrayList<>();
 
     public Player(PlayerStats stats) {
         this.stats = stats;
+        this.health = stats.getHp();
+        this.maxHealth = stats.getHp();
+        this.speed = stats.getSpeed();
 
         texture = new Texture("character.png");
         TextureRegion[][] frames = TextureRegion.split(texture, FRAME_W, FRAME_H);
@@ -75,42 +96,112 @@ public class Player {
         this.collisionLayer = layer;
     }
 
-    public void setNpc(NPC npc) {
-        this.npc = npc;
+    public void setNpcs(List<NPC> npcs) {
+        this.npcs = npcs;
+    }
+
+    public void setSounds(Sound attack, Sound jump, Sound hurt) {
+        this.attackSound = attack;
+        this.jumpSound = jump;
+        this.hurtSound = hurt;
+    }
+
+    public void setMaxHealth(int maxHealth) {
+        this.maxHealth = maxHealth;
+        this.health = maxHealth;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
+
+    public void setPosition(float x, float y) {
+        this.playerX = x;
+        this.playerY = y;
+        this.spawnX = x;
+        this.spawnY = y;
+    }
+
+    public void attack() {
+        if (!isAttacking) {
+            isAttacking = true;
+            attackTimer = 0f;
+            if (attackSound != null) {
+                attackSound.play();
+            }
+        }
+    }
+
+    public void jump() {
+        // В этой реализации прыжка нет, но оставим метод для совместимости
+        if (jumpSound != null) {
+            jumpSound.play();
+        }
+    }
+
+    public void takeDamage(int damage) {
+        health -= damage;
+        if (hurtSound != null) {
+            hurtSound.play();
+        }
+        if (health <= 0) {
+            alive = false;
+        }
+    }
+
+    public boolean isDead() {
+        return !alive || health <= 0;
+    }
+
+    public void respawn() {
+        playerX = spawnX;
+        playerY = spawnY;
+        health = maxHealth;
+        alive = true;
     }
 
     public void update(float delta) {
+        if (!alive) return;
 
         stateTime += delta;
-        float speed = stats.getSpeed();
+
+        // Обновление атаки
+        if (isAttacking) {
+            attackTimer += delta;
+            if (attackTimer >= ATTACK_DURATION) {
+                isAttacking = false;
+            }
+        }
+
+        float currentSpeed = speed * delta;
 
         float dx = 0f;
         float dy = 0f;
         boolean moving = false;
 
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            dx -= speed * delta;
+            dx -= currentSpeed;
             currentFrame = walkLeft.getKeyFrame(stateTime, true);
             lastDirection = Direction.LEFT;
             moving = true;
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            dx += speed * delta;
+            dx += currentSpeed;
             currentFrame = walkRight.getKeyFrame(stateTime, true);
             lastDirection = Direction.RIGHT;
             moving = true;
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-            dy += speed * delta;
+            dy += currentSpeed;
             currentFrame = walkUp.getKeyFrame(stateTime, true);
             lastDirection = Direction.UP;
             moving = true;
         }
 
         if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            dy -= speed * delta;
+            dy -= currentSpeed;
             currentFrame = walkDown.getKeyFrame(stateTime, true);
             lastDirection = Direction.DOWN;
             moving = true;
@@ -130,10 +221,8 @@ public class Player {
 
         clampToWorld();
 
-        // ===== Idle =====
         if (!moving) {
             stateTime = 0f;
-
             switch (lastDirection) {
                 case UP -> currentFrame = idleUp;
                 case DOWN -> currentFrame = idleDown;
@@ -143,22 +232,29 @@ public class Player {
         }
     }
 
-    // ===== Коллизия с NPC =====
     private boolean isCollidingWithNPC(float nextX, float nextY) {
-
-        if (npc == null) return false;
+        if (npcs == null || npcs.isEmpty()) return false;
 
         float footX = nextX + (playerW - footW) / 2f;
         float footY = nextY;
 
-        return footX < npc.getX() + npc.getWidth() &&
-            footX + footW > npc.getX() &&
-            footY < npc.getY() + npc.getHeight() &&
-            footY + footH > npc.getY();
+        for (NPC npc : npcs) {
+            float npcFootW = 12f;
+            float npcFootH = 6f;
+            float npcFootX = npc.getX() + (npc.getWidth() - npcFootW) / 2f;
+            float npcFootY = npc.getY();
+
+            boolean overlap = footX < npcFootX + npcFootW &&
+                footX + footW > npcFootX &&
+                footY < npcFootY + npcFootH &&
+                footY + footH > npcFootY;
+
+            if (overlap) return true;
+        }
+        return false;
     }
 
     private void clampToWorld() {
-
         if (collisionLayer == null) return;
 
         float mapWidth = collisionLayer.getWidth() * collisionLayer.getTileWidth();
@@ -169,7 +265,6 @@ public class Player {
     }
 
     private boolean isBlockedFeet(float px, float py) {
-
         float footX = px + (playerW - footW) / 2f;
         float footY = py;
         float eps = 0.01f;
@@ -181,7 +276,6 @@ public class Player {
     }
 
     private boolean isBlockedPoint(float worldX, float worldY) {
-
         if (collisionLayer == null) return false;
 
         int cellX = (int)(worldX / collisionLayer.getTileWidth());
@@ -192,13 +286,20 @@ public class Player {
     }
 
     public void render(Batch batch) {
+        if (!alive) return;
         batch.draw(currentFrame, playerX, playerY, playerW, playerH);
     }
 
+    // ===== Геттеры =====
     public float getX() { return playerX; }
     public float getY() { return playerY; }
     public float getWidth() { return playerW; }
     public float getHeight() { return playerH; }
+    public float getSpeed() { return speed; }
+    public int getHealth() { return health; }
+    public int getMaxHealth() { return maxHealth; }
+    public boolean isAlive() { return alive; }
+    public boolean isAttacking() { return isAttacking; }
 
     public void dispose() {
         texture.dispose();

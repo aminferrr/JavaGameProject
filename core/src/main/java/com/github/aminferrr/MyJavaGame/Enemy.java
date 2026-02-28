@@ -42,8 +42,8 @@ public class Enemy {
     private final Vector2 tmp = new Vector2();
 
     private final float speed = 3f;
-    private final float attackRange = 1.5f;
-    private final float visionRange = 6f;
+    private final float attackRange = 1.0f; // Уменьшили дистанцию атаки
+    private final float visionRange = 5f;   // Немного уменьшили зону видимости
     private final float attackCooldown = 1.0f;
     private float attackTimer = 0;
 
@@ -80,30 +80,43 @@ public class Enemy {
 
         body = world.createBody(bodyDef);
 
-        PolygonShape shape = new PolygonShape();
+        // СОЗДАЕМ ОСНОВНОЙ ХИТБОКС С КОЛЛИЗИЕЙ
+        PolygonShape mainShape = new PolygonShape();
 
-        // Разные размеры хитбокса для разных врагов
+        // ЕЩЁ БОЛЬШЕ УМЕНЬШАЕМ размеры хитбоксов
         if (type == EnemyType.MUD_GUARD) {
-            // Mud Guard: 24x48 пикселей → 1.5x3 метра
-            shape.setAsBox(0.75f, 1.5f);
+            // Mud Guard
+            mainShape.setAsBox(0.3f, 0.8f); // Было 0.5f, 1.2f
+        } else if (type == EnemyType.ZAPPER) {
+            // Toaster Bot - делаем совсем маленьким
+            mainShape.setAsBox(-0.2f, -0.2f); // Было 1.0f, 0.4f
+        } else if (type == EnemyType.WHEEL) {
+            // Wheel Bot - делаем совсем маленьким
+            mainShape.setAsBox(-0.2f, -0.2f); // Было 1.1f, 0.5f
+        } else if (type == EnemyType.STORMHEAD) {
+            // Stormhead - уменьшаем значительно
+            mainShape.setAsBox(0.5f, 0.6f); // Было 1.2f, 1.3f
         } else if (flying) {
-            shape.setAsBox(1.0f, 0.5f);
+            mainShape.setAsBox(0.4f, 0.2f);
         } else {
-            shape.setAsBox(0.5f, 0.8f);
+            mainShape.setAsBox(0.3f, 0.4f);
         }
 
-        FixtureDef fixtureDef = new FixtureDef();
-        fixtureDef.shape = shape;
-        fixtureDef.density = 1.2f;
-        fixtureDef.friction = 0.4f;
+        FixtureDef mainFixtureDef = new FixtureDef();
+        mainFixtureDef.shape = mainShape;
+        mainFixtureDef.density = 1.2f;
+        mainFixtureDef.friction = 0.4f;
+        mainFixtureDef.restitution = 0f;
 
-        body.setFixedRotation(true);
+        Fixture mainFixture = body.createFixture(mainFixtureDef);
+        mainFixture.setUserData("enemy");
+
+        body.setUserData(this);
+        mainShape.dispose();
+
         body.setGravityScale(flying ? 0f : 1f);
 
-        Fixture fixture = body.createFixture(fixtureDef);
-        fixture.setUserData("enemy");
-        body.setUserData(this);
-        shape.dispose();
+        Gdx.app.log("ENEMY", "Создан враг с коллизией типа " + type);
     }
 
     private void loadAnimations() {
@@ -311,20 +324,20 @@ public class Enemy {
 
             float width, height;
 
-            // Размеры для каждого типа врага
+            // Размеры для каждого типа врага (в метрах)
             if (type == EnemyType.ZAPPER) {
-                width = 106f / PPM;
-                height = 22f / PPM;
+                width = 106f / PPM;  // 6.625 метров
+                height = 22f / PPM;   // 1.375 метров
             } else if (type == EnemyType.WHEEL) {
-                width = 112f / PPM;
-                height = 26f / PPM;
+                width = 112f / PPM;  // 7 метров
+                height = 26f / PPM;   // 1.625 метров
             } else if (type == EnemyType.MUD_GUARD) {
-                // Mud Guard: 24x48 пикселей (по вашим данным)
-                width = 48f / PPM;   // 48/16 = 3 метра
-                height = 24f / PPM;  // 24/16 = 1.5 метра
+                // Mud Guard: меняем местами для правильной ориентации
+                width = 48f / PPM;   // 3 метра
+                height = 24f / PPM;  // 1.5 метра
             } else if (type == EnemyType.STORMHEAD) {
-                width = 119f / PPM;
-                height = 124f / PPM;
+                width = 119f / PPM;  // 7.44 метров
+                height = 124f / PPM;  // 7.75 метров
             } else {
                 width = 1f;
                 height = 2f;
